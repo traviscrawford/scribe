@@ -23,7 +23,9 @@
 using namespace std;
 
 ZKClient::ZKClient() {
-  zoo_set_debug_level(ZOO_LOG_LEVEL_DEBUG);
+  if (debug_level) {
+    zoo_set_debug_level(ZOO_LOG_LEVEL_DEBUG);
+  }
 }
 
 ZKClient::~ZKClient() {
