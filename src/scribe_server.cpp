@@ -645,10 +645,20 @@ void scribeHandler::initialize() {
     }
 
 #ifdef USE_ZOOKEEPER
-    // For example, zookeeper.local.twitter.com:2181
+    /*
+     * Scribe can optionally register itself in Zookeeper by setting the
+     * following config options:
+     *
+     *   zk_server: Zookeeper server to register with. For example:
+     *              zookeeper.local.twitter.com:2181
+     *   zk_registration_prefix: Znode prefix. For example:
+     *                           /twitter/scribe/aggregator
+     *
+     * Registration creates all parents as regular znodes if needed, then
+     * creates an ephemeral znode for the current scribe server.
+     */
     string zk_server;
     if (config.getString("zk_server", zk_server)) {
-      // For example, /twitter/scribe/aggregator
       string zk_registration_prefix;
       if (!config.getString("zk_registration_prefix", zk_registration_prefix)) {
         throw runtime_error("ZK: No registration prefix!");
