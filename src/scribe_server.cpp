@@ -159,6 +159,14 @@ int main(int argc, char **argv) {
     g_Handler = shared_ptr<scribeHandler>(new scribeHandler(port, config_file));
     g_Handler->initialize();
 
+    // TODO: Make this optional.
+    string hostPort = "zookeeper.local.twitter.com:2181";
+    string pathName = "/home/travis/scribe/aggregator";
+    static shared_ptr<ZKClient> zkclient;
+    zkclient = shared_ptr<ZKClient>(new ZKClient());
+    zkclient->connect(hostPort);
+    zkclient->registerTask(pathName);
+
     signal(SIGINT,  terminate);
     signal(SIGTERM, terminate);
     signal(SIGHUP,  terminate);

@@ -98,6 +98,9 @@ scribed_SOURCES = store.cpp store_queue.cpp conf.cpp file.cpp conn_pool.cpp scri
 if USE_SCRIBE_HDFS
   scribed_SOURCES += HdfsFile.cpp
 endif
+if USE_ZOOKEEPER
+  scribed_SOURCES += zk_client.cpp
+endif
 scribed_LDADD = $(EXTERNAL_LIBS) $(INTERNAL_LIBS)
 
 if SHARED
