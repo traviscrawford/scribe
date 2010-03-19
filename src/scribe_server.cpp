@@ -159,14 +159,6 @@ int main(int argc, char **argv) {
     g_Handler = shared_ptr<scribeHandler>(new scribeHandler(port, config_file));
     g_Handler->initialize();
 
-    // TODO: Make this optional.
-    string hostPort = "zookeeper.local.twitter.com:2181";
-    string pathName = "/home/travis/scribe/aggregator";
-    static shared_ptr<ZKClient> zkclient;
-    zkclient = shared_ptr<ZKClient>(new ZKClient());
-    zkclient->connect(hostPort);
-    zkclient->registerTask(pathName);
-
     signal(SIGINT,  terminate);
     signal(SIGTERM, terminate);
     signal(SIGHUP,  terminate);
@@ -651,6 +643,23 @@ void scribeHandler::initialize() {
     } else {
       newThreadPerCategory = true;
     }
+
+#ifdef USE_ZOOKEEPER
+    // For example, zookeeper.local.twitter.com:2181
+    string zk_server;
+    if (config.getString("zk_server", zk_server)) {
+      // For example, /twitter/scribe/aggregator
+      string zk_registration_prefix;
+      if (!config.getString("zk_registration_prefix", zk_registration_prefix)) {
+        throw runtime_error("ZK: No registration prefix!");
+      } else {
+        static shared_ptr<ZKClient> zkclient;
+        zkclient = shared_ptr<ZKClient>(new ZKClient());
+        zkclient->connect(zk_server);
+        zkclient->registerTask(zk_registration_prefix);
+      }
+    }
+#endif
 
     unsigned long int old_port = port;
     config.getUnsigned("port", port);
