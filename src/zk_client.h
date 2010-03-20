@@ -31,7 +31,10 @@ class ZKClient {
    static void watcher(zhandle_t *zzh, int type, int state,
                        const char *path, void *watcherCtx);
    void connect(std::string& hostPort);
-   void registerTask(std::string& pathName);
+   bool registerTask(std::string& pathName, unsigned long int port);
+   bool getRemoteScribe(std::string& parentZnode,
+                        std::string& remoteHost,
+                        unsigned long& remotePort);
 
    zhandle_t *zh; // Zookeeper connection handle.
 };

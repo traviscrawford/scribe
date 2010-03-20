@@ -1571,6 +1571,12 @@ void NetworkStore::configure(pStoreConf configuration) {
     smcBased = false;
     configuration->getString("remote_host", remoteHost);
     configuration->getUnsigned("remote_port", remotePort);
+#ifdef USE_ZOOKEEPER
+    if (0 == remoteHost.find("zk://")) {
+      string parentZnode = remoteHost.substr(5, string::npos);
+      g_ZKClient->getRemoteScribe(parentZnode, remoteHost, remotePort);
+    }
+#endif
   }
 
   if (!configuration->getInt("timeout", timeout)) {

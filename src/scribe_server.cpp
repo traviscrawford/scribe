@@ -41,6 +41,10 @@ using boost::shared_ptr;
 
 static shared_ptr<scribeHandler> g_Handler;
 
+#ifdef USE_ZOOKEEPER
+shared_ptr<ZKClient> g_ZKClient;
+#endif
+
 #define DEFAULT_CHECK_PERIOD       5
 #define DEFAULT_MAX_MSG_PER_SECOND 100000
 #define DEFAULT_MAX_QUEUE_SIZE     5000000LL
@@ -644,33 +648,6 @@ void scribeHandler::initialize() {
       newThreadPerCategory = true;
     }
 
-#ifdef USE_ZOOKEEPER
-    /*
-     * Scribe can optionally register itself in Zookeeper by setting the
-     * following config options:
-     *
-     *   zk_server: Zookeeper server to register with. For example:
-     *              zookeeper.local.twitter.com:2181
-     *   zk_registration_prefix: Znode prefix. For example:
-     *                           /twitter/scribe/aggregator
-     *
-     * Registration creates all parents as regular znodes if needed, then
-     * creates an ephemeral znode for the current scribe server.
-     */
-    string zk_server;
-    if (config.getString("zk_server", zk_server)) {
-      string zk_registration_prefix;
-      if (!config.getString("zk_registration_prefix", zk_registration_prefix)) {
-        throw runtime_error("ZK: No registration prefix!");
-      } else {
-        static shared_ptr<ZKClient> zkclient;
-        zkclient = shared_ptr<ZKClient>(new ZKClient());
-        zkclient->connect(zk_server);
-        zkclient->registerTask(zk_registration_prefix);
-      }
-    }
-#endif
-
     unsigned long int old_port = port;
     config.getUnsigned("port", port);
     if (old_port != 0 && port != old_port) {
@@ -679,6 +656,29 @@ void scribeHandler::initialize() {
     if (port <= 0) {
       throw runtime_error("No port number configured");
     }
+
+#ifdef USE_ZOOKEEPER
+    /*
+     * Scribe can optionally register itself in Zookeeper by compiling with
+     * Zookeeper support and setting the following config options:
+     *
+     *   zk_server: Zookeeper server to register with. For example:
+     *              zookeeper.local.twitter.com:2181
+     *   zk_registration_prefix: Znode prefix. For example:
+     *                           /twitter/scribe/aggregator
+     */
+    string zk_server;
+    if (config.getString("zk_server", zk_server)) {
+      string zk_registration_prefix;
+      if (!config.getString("zk_registration_prefix", zk_registration_prefix)) {
+        throw runtime_error("ZK: No registration prefix!");
+      } else {
+        g_ZKClient = shared_ptr<ZKClient>(new ZKClient());
+        g_ZKClient->connect(zk_server);
+        g_ZKClient->registerTask(zk_registration_prefix, port);
+      }
+    }
+#endif
 
     // check if config sets the size to use for the ThreadManager
     unsigned long int num_threads;
