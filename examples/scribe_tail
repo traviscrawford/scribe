@@ -169,7 +169,7 @@ def do_tail(client, filename):
       except OSError:
         st_results = fd_results
 
-      if st_results.st_size < where:
+      if fd_results.st_size < where:
         logger.info('%s was truncated. Jump back to 0.', filename)
         fd.seek(0)
       elif st_results.st_ino == fd_results.st_ino:
