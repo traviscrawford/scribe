@@ -18,6 +18,7 @@
 
 #include "source.h"
 #include "scribe_server.h"
+#include <sys/inotify.h>
 
 using boost::shared_ptr;
 using boost::property_tree::ptree;
@@ -65,9 +66,16 @@ void Source::stop() {}
 void Source::run() {}
 
 
-TailSource::TailSource(ptree& configuration) : Source(configuration) {}
+TailSource::TailSource(ptree& configuration) : Source(configuration) {
+    inotify_fd = inotify_init();
+    if (inotify_fd < 0) {
+        LOG_OPER("inotify_init failed: %s", strerror(errno));
+    }
+}
 
-TailSource::~TailSource() {}
+TailSource::~TailSource() {
+    close(inotify_fd);
+}
 
 void TailSource::configure() {
   Source::configure();
@@ -76,6 +84,13 @@ void TailSource::configure() {
     LOG_OPER("[%s] Invalid TailSource configuration! No <file> specified.",
       categoryHandled.c_str());
     validConfiguration = false;
+  } else {
+    int rv = inotify_add_watch(inotify_fd, filename.c_str(), IN_MODIFY);
+    if (rv < 0) {
+      LOG_OPER("Failed to add inotify watch for file %s: %s",
+        filename.c_str(), strerror(errno));
+      validConfiguration = false;
+    }
   }
 }
 
@@ -112,6 +127,15 @@ void TailSource::run() {
   vector<LogEntry> messages;
 
   while (active) {
+    struct inotify_event event;
+    memset(&event, 0, sizeof(event));
+    int rv = read(inotify_fd, &event, sizeof(event));
+    if (rv < 0) {
+        LOG_OPER("Failed to read inotify event for file %s: %s", filename.c_str(), strerror(errno));
+        sleep(10);
+        continue;
+    }
+
     stat(filename.c_str(), &currentStat);
 
     // Files sometimes have their inode changed, such as during some types
@@ -157,7 +181,6 @@ void TailSource::run() {
     } else if (in.eof()) {
       in.clear();
     }
-    usleep(1);
   }
   LOG_OPER("[%s] Closing tailed log file <%s>",
     categoryHandled.c_str(), filename.c_str());

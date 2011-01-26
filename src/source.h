@@ -60,6 +60,7 @@ class TailSource : public Source {
  private:
   std::string filename;
   boost::iostreams::filtering_istream in;
+  int inotify_fd;
 };
 
 #endif /* SCRIBE_SOURCE_H_ */
