@@ -21,6 +21,7 @@
 
 #include "common.h"
 #include "conf.h"
+#include "PathWatcher.h"
 
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -48,7 +49,6 @@ class Source {
   bool validConfiguration;
 };
 
-
 class TailSource : public Source {
  public:
   TailSource(boost::property_tree::ptree& configuration);
@@ -60,7 +60,9 @@ class TailSource : public Source {
  private:
   std::string filename;
   boost::iostreams::filtering_istream in;
-  int inotify_fd;
+  PathWatcher pathWatcher;
+  bool watchPath();
+  bool waitForEvent();
 };
 
 #endif /* SCRIBE_SOURCE_H_ */

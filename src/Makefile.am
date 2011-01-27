@@ -67,7 +67,7 @@ endif
 # DO NOT USE CPPFLAGS, CXXFLAGS, CFLAGS, LDFLAGS here! Set in configure.ac and|or override on command line.
 # USE flags AM_CXXFLAGS, AM_CFLAGS, AM_CPPFLAGS, AM_LDFLAGS, LDADD in this section.
 
-AM_CPPFLAGS = -I..
+AM_CPPFLAGS = -I.. -g
 AM_CPPFLAGS += -I$(thrift_home)/include
 AM_CPPFLAGS += -I$(thrift_home)/include/thrift
 AM_CPPFLAGS += -I$(fb303_home)/include/thrift
@@ -104,7 +104,7 @@ endif
 
 # Binaries -- multiple progs can be defined.
 bin_PROGRAMS = scribed
-scribed_SOURCES = source.cpp store.cpp store_queue.cpp SourceConf.cpp conf.cpp file.cpp conn_pool.cpp scribe_server.cpp network_dynamic_config.cpp dynamic_bucket_updater.cpp url.cpp $(FB_SOURCES) $(ENV_SOURCES)
+scribed_SOURCES = source.cpp store.cpp store_queue.cpp SourceConf.cpp conf.cpp file.cpp conn_pool.cpp scribe_server.cpp network_dynamic_config.cpp dynamic_bucket_updater.cpp url.cpp PathWatcher.cpp $(FB_SOURCES) $(ENV_SOURCES)
 if USE_SCRIBE_HDFS
   scribed_SOURCES += HdfsFile.cpp
 endif
@@ -118,11 +118,14 @@ if SHARED
 scribed_DEPENDENCIES = libscribe.so
 endif
 
-TESTS = url_test
+TESTS = url_test TestPathWatcher
 check_PROGRAMS = $(TESTS)
 url_test_SOURCES = url.h url.cpp url_test.cpp
 url_test_CXXFLAGS = $(CPPUNIT_CFLAGS)
 url_test_LDFLAGS = $(CPPUNIT_LIBS)
+TestPathWatcher_SOURCES = PathWatcher.h PathWatcher.cpp TestPathWatcher.cpp
+TestPathWatcher_CXXFLAGS = $(CPPUNIT_CFLAGS)
+TestPathWatcher_LDFLAGS = $(CPPUNIT_LIBS)
 
 # Section 4 ##############################################################################
 # Set up Thrift specific activity here.

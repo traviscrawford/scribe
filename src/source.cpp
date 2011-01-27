@@ -19,10 +19,6 @@
 #include "source.h"
 #include "scribe_server.h"
 
-#ifdef HAVE_INOTIFY
-#include <sys/inotify.h>
-#endif
-
 using boost::shared_ptr;
 using boost::property_tree::ptree;
 using namespace scribe::thrift;
@@ -68,22 +64,10 @@ void Source::stop() {}
 
 void Source::run() {}
 
-
 TailSource::TailSource(ptree& configuration) : Source(configuration) {
-#ifdef HAVE_INOTIFY
-    inotify_fd = inotify_init();
-    if (inotify_fd < 0) {
-        LOG_OPER("inotify_init failed: %s", strerror(errno));
-    }
-#endif
 }
 
 TailSource::~TailSource() {
-#ifdef HAVE_INOTIFY
-  if (inotify_fd >= 0) {
-    close(inotify_fd);
-  }
-#endif
 }
 
 void TailSource::configure() {
@@ -94,15 +78,44 @@ void TailSource::configure() {
       categoryHandled.c_str());
     validConfiguration = false;
   } else {
-#ifdef HAVE_INOTIFY
-    int rv = inotify_add_watch(inotify_fd, filename.c_str(), IN_MODIFY);
-    if (rv < 0) {
-      LOG_OPER("Failed to add inotify watch for file %s: %s",
-        filename.c_str(), strerror(errno));
+    if (!watchPath()) {
       validConfiguration = false;
     }
-#endif
   }
+}
+
+bool TailSource::watchPath() {
+  if (pathWatcher.tryWatchFile(filename)) {
+    return true;
+  }
+  // File watch failed. Try watching each parent directory.
+  LOG_OPER("Unable to watch %s. Attempting to watch parent directories.", filename.c_str());
+  boost::filesystem::path fullPath(filename);
+  deque<string> pathStack;
+  boost::filesystem::path::iterator pathIter = fullPath.begin();
+  while (pathIter != fullPath.end()) {
+    pathStack.push_back(*pathIter);
+    pathIter++;
+  }
+  // We already failed to watch the file. Remove it from the path stack.
+  pathStack.pop_back();
+
+  // Attempt to watch a parent path of the file.
+  while (!pathStack.empty()) {
+    boost::filesystem::path pathToWatch;
+    for (deque<string>::iterator elem = pathStack.begin(); elem != pathStack.end(); elem++) {
+      pathToWatch /= *elem;
+    }
+    string strPathToWatch = pathToWatch.string();
+    LOG_OPER("Attempting to watch path %s", strPathToWatch.c_str());
+    if (pathWatcher.tryWatchDirectory(strPathToWatch)) {
+      return true;
+    }
+    pathStack.pop_back();
+  }
+  LOG_OPER("Failed to watch any parent paths of %s", filename.c_str());
+  sleep(10);
+  return false;
 }
 
 void TailSource::start() {
@@ -138,21 +151,15 @@ void TailSource::run() {
   vector<LogEntry> messages;
 
   while (active) {
-#ifdef HAVE_INOFITY
-    struct inotify_event event;
-    memset(&event, 0, sizeof(event));
-    int rv = read(inotify_fd, &event, sizeof(event));
-    LOG_DEBUG("Detected change in file %s", filename.c_str());
-    if (rv < 0) {
-        LOG_OPER("Failed to read inotify event for file %s: %s", filename.c_str(), strerror(errno));
-        sleep(10);
-        continue;
+    bool fileEvent;
+    bool rewatch;
+    pathWatcher.waitForEvent(fileEvent, rewatch);
+    if (rewatch) {
+      watchPath();
     }
-#else
-    // inotify is not available. Sleep for one second before checking the file.
-    sleep(1);
-#endif
-
+    if (!fileEvent) {
+      continue;
+    }
 
     stat(filename.c_str(), &currentStat);
 
