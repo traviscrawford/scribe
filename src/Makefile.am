@@ -67,7 +67,7 @@ endif
 # DO NOT USE CPPFLAGS, CXXFLAGS, CFLAGS, LDFLAGS here! Set in configure.ac and|or override on command line.
 # USE flags AM_CXXFLAGS, AM_CFLAGS, AM_CPPFLAGS, AM_LDFLAGS, LDADD in this section.
 
-AM_CPPFLAGS = -I.. -g
+AM_CPPFLAGS = -I..
 AM_CPPFLAGS += -I$(thrift_home)/include
 AM_CPPFLAGS += -I$(thrift_home)/include/thrift
 AM_CPPFLAGS += -I$(fb303_home)/include/thrift

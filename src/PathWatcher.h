@@ -39,11 +39,16 @@ class PathWatcher {
     */
    void waitForEvent(bool & fileEvent, bool & rewatch);
 
+   // Interrupts the thread waiting for events.
+   void shutdown();
+
  private:
   void clearWatches();
   int inotify_fd;
   int inotify_file_wd;
   int inotify_dir_wd;
+  bool volatile active;
+  pthread_mutex_t watchMutex;
   std::string watchedFile;
 };
 

@@ -64,11 +64,9 @@ void Source::stop() {}
 
 void Source::run() {}
 
-TailSource::TailSource(ptree& configuration) : Source(configuration) {
-}
+TailSource::TailSource(ptree& configuration) : Source(configuration) {}
 
-TailSource::~TailSource() {
-}
+TailSource::~TailSource() {}
 
 void TailSource::configure() {
   Source::configure();
@@ -114,7 +112,6 @@ bool TailSource::watchPath() {
     pathStack.pop_back();
   }
   LOG_OPER("Failed to watch any parent paths of %s", filename.c_str());
-  sleep(10);
   return false;
 }
 
@@ -125,6 +122,8 @@ void TailSource::start() {
 
 void TailSource::stop() {
   active = false;
+  LOG_OPER("Shutting down TailSource thread for %s", filename.c_str());
+  pathWatcher.shutdown();
   pthread_join(sourceThread, NULL);
 }
 

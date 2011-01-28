@@ -62,7 +62,6 @@ class TailSource : public Source {
   boost::iostreams::filtering_istream in;
   PathWatcher pathWatcher;
   bool watchPath();
-  bool waitForEvent();
 };
 
 #endif /* SCRIBE_SOURCE_H_ */
